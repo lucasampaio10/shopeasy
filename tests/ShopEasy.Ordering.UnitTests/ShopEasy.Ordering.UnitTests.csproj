@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Services\Ordering\ShopEasy.Ordering.Application\ShopEasy.Ordering.Application.csproj" />
+  </ItemGroup>
+</Project>

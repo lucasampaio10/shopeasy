@@ -1,0 +1,21 @@
+namespace ShopEasy.BuildingBlocks.Results;
+
+public enum ErrorType
+{
+    Failure,
+    Validation,
+    NotFound,
+    Conflict,
+}
+
+/// <summary>Expected failure of a use case, described without throwing.</summary>
+public sealed record Error(string Code, string Message, ErrorType Type)
+{
+    public static Error Failure(string code, string message) => new(code, message, ErrorType.Failure);
+
+    public static Error Validation(string code, string message) => new(code, message, ErrorType.Validation);
+
+    public static Error NotFound(string code, string message) => new(code, message, ErrorType.NotFound);
+
+    public static Error Conflict(string code, string message) => new(code, message, ErrorType.Conflict);
+}

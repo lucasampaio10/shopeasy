@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\ShopEasy.Payment.Domain\ShopEasy.Payment.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ShopEasy.Contracts\ShopEasy.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ShopEasy.Payment.UnitTests" />
+  </ItemGroup>
+</Project>

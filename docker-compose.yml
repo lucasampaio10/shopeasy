@@ -1,0 +1,99 @@
+name: shopeasy
+
+x-service: &service
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
+x-rabbitmq-env: &rabbitmq-env
+  RabbitMq__Host: rabbitmq
+  RabbitMq__User: ${RABBITMQ_USER:-shopeasy}
+  RabbitMq__Password: ${RABBITMQ_PASSWORD:-shopeasy}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shopeasy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shopeasy}
+    volumes:
+      - ./deploy/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5440:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shopeasy}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-shopeasy}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-shopeasy}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  catalog-api:
+    <<: *service
+    build:
+      context: .
+      args:
+        PROJECT: Services/Catalog/ShopEasy.Catalog.Api
+        ASSEMBLY: ShopEasy.Catalog.Api
+    environment:
+      <<: *rabbitmq-env
+      ConnectionStrings__Database: Host=postgres;Database=shopeasy_catalog;Username=${POSTGRES_USER:-shopeasy};Password=${POSTGRES_PASSWORD:-shopeasy}
+
+  ordering-api:
+    <<: *service
+    build:
+      context: .
+      args:
+        PROJECT: Services/Ordering/ShopEasy.Ordering.Api
+        ASSEMBLY: ShopEasy.Ordering.Api
+    environment:
+      <<: *rabbitmq-env
+      ConnectionStrings__Database: Host=postgres;Database=shopeasy_ordering;Username=${POSTGRES_USER:-shopeasy};Password=${POSTGRES_PASSWORD:-shopeasy}
+
+  payment-api:
+    <<: *service
+    build:
+      context: .
+      args:
+        PROJECT: Services/Payment/ShopEasy.Payment.Api
+        ASSEMBLY: ShopEasy.Payment.Api
+    environment:
+      <<: *rabbitmq-env
+      ConnectionStrings__Database: Host=postgres;Database=shopeasy_payment;Username=${POSTGRES_USER:-shopeasy};Password=${POSTGRES_PASSWORD:-shopeasy}
+
+  gateway:
+    restart: unless-stopped
+    build:
+      context: .
+      args:
+        PROJECT: Gateway/ShopEasy.Gateway
+        ASSEMBLY: ShopEasy.Gateway
+    environment:
+      ReverseProxy__Clusters__catalog__Destinations__primary__Address: http://catalog-api:8080
+      ReverseProxy__Clusters__ordering__Destinations__primary__Address: http://ordering-api:8080
+      ReverseProxy__Clusters__payment__Destinations__primary__Address: http://payment-api:8080
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      - catalog-api
+      - ordering-api
+      - payment-api
+
+volumes:
+  postgres-data:

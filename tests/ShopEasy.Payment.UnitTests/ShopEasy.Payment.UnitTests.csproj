@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Services\Payment\ShopEasy.Payment.Infrastructure\ShopEasy.Payment.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

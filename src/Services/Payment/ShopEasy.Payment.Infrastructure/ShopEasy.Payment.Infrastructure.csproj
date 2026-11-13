@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ShopEasy.Payment.Application\ShopEasy.Payment.Application.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ShopEasy.BuildingBlocks.Infrastructure\ShopEasy.BuildingBlocks.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ShopEasy.Payment.UnitTests" />
+  </ItemGroup>
+</Project>

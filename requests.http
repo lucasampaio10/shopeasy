@@ -1,0 +1,72 @@
+### Requests for the VS Code REST Client / JetBrains HTTP client.
+### Start the stack with `docker compose up -d --build` first.
+@gateway = http://localhost:8080
+@customerId = 7b0a3c0e-5a3f-4a53-9a57-0f6d1a2b3c4d
+
+### List products
+# @name products
+GET {{gateway}}/api/products?pageSize=10
+
+### Search products
+GET {{gateway}}/api/products?search=teclado
+
+### Create a product
+POST {{gateway}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Mousepad XL",
+  "sku": "PAD-XL",
+  "description": "Superfície de tecido, 90x40 cm.",
+  "price": 99.90,
+  "initialStock": 50
+}
+
+### Place an order (returns 202: stock and payment are settled asynchronously)
+# @name order
+POST {{gateway}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": "{{customerId}}",
+  "shippingAddress": {
+    "street": "Av. Beira Mar, 1000",
+    "city": "Fortaleza",
+    "state": "CE",
+    "zipCode": "60165-121"
+  },
+  "paymentToken": "tok_visa",
+  "items": [
+    { "productId": "{{products.response.body.items[0].id}}", "quantity": 1 }
+  ]
+}
+
+### Follow the order: Pending -> AwaitingPayment -> Paid (or Cancelled)
+GET {{gateway}}/api/orders/{{order.response.body.id}}
+
+### Payment recorded for the order
+GET {{gateway}}/api/payments/order/{{order.response.body.id}}
+
+### Orders of a customer
+GET {{gateway}}/api/orders?customerId={{customerId}}
+
+### Cancel an order that was not paid yet
+POST {{gateway}}/api/orders/{{order.response.body.id}}/cancel
+
+### Declined card: use a token starting with "tok_declined"
+POST {{gateway}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": "{{customerId}}",
+  "shippingAddress": {
+    "street": "Av. Beira Mar, 1000",
+    "city": "Fortaleza",
+    "state": "CE",
+    "zipCode": "60165-121"
+  },
+  "paymentToken": "tok_declined_card",
+  "items": [
+    { "productId": "{{products.response.body.items[0].id}}", "quantity": 1 }
+  ]
+}
