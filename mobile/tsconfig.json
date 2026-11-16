@@ -1,0 +1,9 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    // Pinned explicitly rather than relying on TypeScript's "include every @types/* package"
+    // default, which is sensitive to whatever happens to be hoisted into node_modules/@types.
+    "types": ["jest", "node"]
+  }
+}

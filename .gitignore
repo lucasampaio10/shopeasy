@@ -1,3 +1,4 @@
+# .NET (backend/)
 bin/
 obj/
 .vs/
@@ -5,3 +6,14 @@ obj/
 *.user
 .env
 TestResults/
+
+# React Native / Expo (mobile/)
+node_modules/
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision

@@ -1,8 +1,8 @@
 # ShopEasy
 
-Backend de e-commerce em microsserviços com **.NET 8**: catálogo, pedidos e pagamentos conversando por eventos no **RabbitMQ**, cada um com seu próprio banco **PostgreSQL**.
+E-commerce completo: backend em microsserviços com **.NET 8** (catálogo, pedidos e pagamentos conversando por eventos no **RabbitMQ**, cada um com seu próprio banco **PostgreSQL**) e uma loja em **React Native (Expo)** que fecha pedidos de verdade contra ele.
 
-O projeto existe para mostrar, em código pequeno o suficiente para ser lido inteiro, como Clean Architecture, DDD, CQRS e mensageria resolvem um problema real: fechar um pedido que depende de três serviços sem transação distribuída.
+O projeto existe para mostrar, em código pequeno o suficiente para ser lido inteiro, como Clean Architecture, DDD, CQRS e mensageria resolvem um problema real: fechar um pedido que depende de três serviços sem transação distribuída — e como um cliente mobile acompanha esse pedido assentando em cima dessa arquitetura, sem fingir que ela é síncrona.
 
 ## O fluxo de um pedido
 
@@ -41,7 +41,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    Client([Cliente]) --> Gateway[API Gateway<br/>YARP]
+    Client([App ShopEasy<br/>React Native]) --> Gateway[API Gateway<br/>YARP]
     Gateway --> Catalog[Catalog API]
     Gateway --> Ordering[Ordering API]
     Gateway --> Payment[Payment API]
@@ -53,6 +53,8 @@ flowchart LR
     Payment <--> Bus
 ```
 
+O app ([`mobile/`](mobile)) é só mais um cliente HTTP do Gateway — a mesma API que o `curl` da seção abaixo usa. Ele segue a mesma lógica de camadas do backend (domínio puro, portas, casos de uso, apresentação); os detalhes estão no [README do app](mobile/README.md).
+
 Cada serviço segue a mesma divisão em camadas, com as dependências apontando sempre para dentro:
 
 | Camada | Responsabilidade | Depende de |
@@ -63,17 +65,20 @@ Cada serviço segue a mesma divisão em camadas, com as dependências apontando 
 | `Api` | Endpoints HTTP e composição da aplicação | `Infrastructure` |
 
 ```
-src/
-├── BuildingBlocks/
-│   ├── ShopEasy.BuildingBlocks                 # Entity, AggregateRoot, Money, Result, CQRS
-│   ├── ShopEasy.BuildingBlocks.Infrastructure  # Outbox, RabbitMQ, unit of work, erros HTTP
-│   └── ShopEasy.Contracts                      # Eventos de integração (contrato público)
-├── Services/
-│   ├── Catalog/   Domain · Application · Infrastructure · Api
-│   ├── Ordering/  Domain · Application · Infrastructure · Api
-│   └── Payment/   Domain · Application · Infrastructure · Api
-└── Gateway/ShopEasy.Gateway
-tests/                                          # Testes de unidade por serviço
+backend/
+├── src/
+│   ├── BuildingBlocks/
+│   │   ├── ShopEasy.BuildingBlocks                 # Entity, AggregateRoot, Money, Result, CQRS
+│   │   ├── ShopEasy.BuildingBlocks.Infrastructure  # Outbox, RabbitMQ, unit of work, erros HTTP
+│   │   └── ShopEasy.Contracts                      # Eventos de integração (contrato público)
+│   ├── Services/
+│   │   ├── Catalog/   Domain · Application · Infrastructure · Api
+│   │   ├── Ordering/  Domain · Application · Infrastructure · Api
+│   │   └── Payment/   Domain · Application · Infrastructure · Api
+│   └── Gateway/ShopEasy.Gateway
+└── tests/                                          # Testes de unidade por serviço
+
+mobile/                                              # App React Native (Expo) — ver mobile/README.md
 ```
 
 ## Decisões de projeto
@@ -104,11 +109,14 @@ docker compose up -d --build
 
 | Endereço | O que é |
 |---|---|
-| http://localhost:8080 | API Gateway (entrada única) |
+| http://localhost:8090 | **A loja** (build web do app React Native) |
+| http://localhost:8080 | API Gateway (entrada única da API) |
 | http://localhost:15672 | Painel do RabbitMQ (`shopeasy` / `shopeasy`) |
 | `localhost:5440` | PostgreSQL (`shopeasy` / `shopeasy`) |
 
-As migrações são aplicadas na subida e o catálogo recebe seis produtos de exemplo. O arquivo [`requests.http`](requests.http) tem as chamadas prontas; pela linha de comando:
+O jeito mais rápido de ver tudo funcionando é abrir **http://localhost:8090**, escolher um produto e fechar o pedido — o acompanhamento mostra a saga rodando em tempo real. Para rodar o app fora do Docker (hot reload, simulador, celular físico), veja o [README do app](mobile/README.md).
+
+As migrações são aplicadas na subida e o catálogo recebe seis produtos de exemplo. O arquivo [`backend/requests.http`](backend/requests.http) tem as chamadas prontas; pela linha de comando:
 
 ```bash
 # 1. Pegue o id de um produto
@@ -154,10 +162,10 @@ Cada serviço expõe `/swagger` e `/health` na sua própria porta, dentro da red
 ## Testes
 
 ```bash
-dotnet test
+cd backend && dotnet test
 ```
 
-Os testes cobrem as regras dos agregados, o serviço de alocação de estoque, os casos de uso e as reações da saga, incluindo entrega duplicada de mensagens.
+Os testes cobrem as regras dos agregados, o serviço de alocação de estoque, os casos de uso e as reações da saga, incluindo entrega duplicada de mensagens. Os testes do app (`cd mobile && npm test`) cobrem as regras do carrinho e a validação do formulário de entrega — ver [mobile/README.md](mobile/README.md#testes).
 
 ## Desenvolvimento local
 
@@ -168,13 +176,13 @@ docker compose up -d postgres rabbitmq
 ```
 
 ```bash
-dotnet run --project src/Services/Catalog/ShopEasy.Catalog.Api
+cd backend && dotnet run --project src/Services/Catalog/ShopEasy.Catalog.Api
 ```
 
 Para criar uma migração (exemplo no Ordering):
 
 ```bash
-dotnet tool restore
+cd backend && dotnet tool restore
 ```
 
 ```bash
@@ -183,4 +191,4 @@ dotnet ef migrations add NomeDaMigracao -p src/Services/Ordering/ShopEasy.Orderi
 
 ## Fora do escopo
 
-Para manter o foco na arquitetura, ficaram de fora: autenticação (o `customerId` vem no corpo da requisição), integração com um provedor de pagamento real, estorno quando um pagamento é aprovado para um pedido já cancelado, e observabilidade distribuída (tracing e métricas).
+Para manter o foco na arquitetura, ficaram de fora: autenticação (o `customerId` vem no corpo da requisição), integração com um provedor de pagamento real, estorno quando um pagamento é aprovado para um pedido já cancelado, observabilidade distribuída (tracing e métricas) e publicação do app nas lojas (ele roda como build web e via Expo em desenvolvimento).

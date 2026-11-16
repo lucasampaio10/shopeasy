@@ -47,7 +47,7 @@ services:
   catalog-api:
     <<: *service
     build:
-      context: .
+      context: ./backend
       args:
         PROJECT: Services/Catalog/ShopEasy.Catalog.Api
         ASSEMBLY: ShopEasy.Catalog.Api
@@ -58,7 +58,7 @@ services:
   ordering-api:
     <<: *service
     build:
-      context: .
+      context: ./backend
       args:
         PROJECT: Services/Ordering/ShopEasy.Ordering.Api
         ASSEMBLY: ShopEasy.Ordering.Api
@@ -69,7 +69,7 @@ services:
   payment-api:
     <<: *service
     build:
-      context: .
+      context: ./backend
       args:
         PROJECT: Services/Payment/ShopEasy.Payment.Api
         ASSEMBLY: ShopEasy.Payment.Api
@@ -80,7 +80,7 @@ services:
   gateway:
     restart: unless-stopped
     build:
-      context: .
+      context: ./backend
       args:
         PROJECT: Gateway/ShopEasy.Gateway
         ASSEMBLY: ShopEasy.Gateway
@@ -94,6 +94,19 @@ services:
       - catalog-api
       - ordering-api
       - payment-api
+
+  # Static web build of the mobile app. EXPO_PUBLIC_API_URL is the gateway's address as the
+  # *browser* reaches it, inlined into the bundle at build time — never a Docker-internal host.
+  storefront:
+    restart: unless-stopped
+    build:
+      context: ./mobile
+      args:
+        EXPO_PUBLIC_API_URL: http://localhost:${GATEWAY_PORT:-8080}
+    ports:
+      - "${STOREFRONT_PORT:-8090}:80"
+    depends_on:
+      - gateway
 
 volumes:
   postgres-data:
